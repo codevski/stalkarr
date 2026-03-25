@@ -25,6 +25,8 @@ func NewRouter() *gin.Engine {
 		AllowHeaders: []string{"Authorization", "Content-Type"},
 	}))
 
+	r.Use(securityHeaders())
+
 	// API routes
 	public := r.Group("/api")
 	public.Use(rateLimiter())
