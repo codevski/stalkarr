@@ -1,6 +1,6 @@
 services:
   stalkarr:
-    image: ghcr.io/yourusername/stalkarr:latest
+    image: ghcr.io/codevski/stalkarr:latest
     container_name: stalkarr
     restart: unless-stopped
     ports:

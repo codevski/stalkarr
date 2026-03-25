@@ -35,8 +35,15 @@ services:
       - "8080:8080"
     volumes:
       - ./config:/config
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - GIN_MODE=release
+      - PUID=1000 # optional
+      - PGID=1000 # optional
+      - TZ=America/New_York # optional
     env_file:
       - .env
+
 ```
 
 ## Configuration
