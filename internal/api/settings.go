@@ -1,0 +1,142 @@
+package api
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+
+	"stalkarr/internal/config"
+
+	"github.com/gin-gonic/gin"
+)
+
+func maskKey(key string) string {
+	if len(key) < 4 {
+		return "••••••••"
+	}
+	return "••••••••" + key[len(key)-4:]
+}
+
+func generateID() string {
+	return fmt.Sprintf("%d", len(config.Get().Sonarr)+1)
+}
+
+type instanceResponse struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	URL        string `json:"url"`
+	APIKeySet  bool   `json:"api_key_set"`
+	APIKeyHint string `json:"api_key_hint"`
+}
+
+func toResponse(inst config.SonarrInstance) instanceResponse {
+	return instanceResponse{
+		ID:         inst.ID,
+		Name:       inst.Name,
+		URL:        inst.URL,
+		APIKeySet:  inst.APIKey != "",
+		APIKeyHint: maskKey(inst.APIKey),
+	}
+}
+
+func getSettings(c *gin.Context) {
+	cfg := config.Get()
+	instances := make([]instanceResponse, len(cfg.Sonarr))
+	for i, inst := range cfg.Sonarr {
+		instances[i] = toResponse(inst)
+	}
+	c.JSON(http.StatusOK, gin.H{"sonarr": instances})
+}
+
+type instanceRequest struct {
+	Name   string `json:"name" binding:"required"`
+	URL    string `json:"url"  binding:"required"`
+	APIKey string `json:"api_key"`
+}
+
+func addSonarrInstance(c *gin.Context) {
+	var req instanceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name and url required"})
+		return
+	}
+
+	cfg := config.Get()
+
+	id := fmt.Sprintf("sonarr-%d", len(cfg.Sonarr)+1)
+
+	inst := config.SonarrInstance{
+		ID:     id,
+		Name:   req.Name,
+		URL:    strings.TrimRight(req.URL, "/"),
+		APIKey: req.APIKey,
+	}
+
+	cfg.Sonarr = append(cfg.Sonarr, inst)
+	if err := config.Save(cfg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save"})
+		return
+	}
+
+	c.JSON(http.StatusOK, toResponse(inst))
+}
+
+func updateSonarrInstance(c *gin.Context) {
+	id := c.Param("id")
+	var req instanceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name and url required"})
+		return
+	}
+
+	cfg := config.Get()
+	found := false
+	for i, inst := range cfg.Sonarr {
+		if inst.ID == id {
+			cfg.Sonarr[i].Name = req.Name
+			cfg.Sonarr[i].URL = strings.TrimRight(req.URL, "/")
+			if req.APIKey != "" {
+				cfg.Sonarr[i].APIKey = req.APIKey
+			}
+			found = true
+			if err := config.Save(cfg); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save"})
+				return
+			}
+			c.JSON(http.StatusOK, toResponse(cfg.Sonarr[i]))
+			break
+		}
+	}
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "instance not found"})
+	}
+}
+
+func deleteSonarrInstance(c *gin.Context) {
+	id := c.Param("id")
+	cfg := config.Get()
+
+	newInstances := cfg.Sonarr[:0]
+	found := false
+	for _, inst := range cfg.Sonarr {
+		if inst.ID == id {
+			found = true
+			continue
+		}
+		newInstances = append(newInstances, inst)
+	}
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "instance not found"})
+		return
+	}
+
+	cfg.Sonarr = newInstances
+	if err := config.Save(cfg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+}
