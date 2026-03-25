@@ -1,0 +1,30 @@
+# Build output
+/stalkarr
+frontend/dist
+internal/static/dist/*
+!internal/static/dist/.gitkeep
+
+# Runtime data
+/data/
+/config/
+
+# Environment
+.env
+
+# Go
+*.test
+*.out
+tmp/
+
+# Node / Bun
+frontend/node_modules/
+frontend/.bun/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
