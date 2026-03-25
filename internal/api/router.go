@@ -45,6 +45,7 @@ func NewRouter() *gin.Engine {
 		protected.DELETE("/settings/sonarr/:id", deleteSonarrInstance)
 		protected.GET("/dashboard", getDashboard)
 		protected.GET("/version", getVersion)
+		protected.POST("/settings/sonarr/:id/test", testSonarrInstance)
 
 		sonarr := protected.Group("/sonarr/:id")
 		{

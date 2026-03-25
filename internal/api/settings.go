@@ -1,9 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"stalkarr/internal/config"
 
@@ -139,4 +141,67 @@ func deleteSonarrInstance(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+}
+
+func testSonarrInstance(c *gin.Context) {
+	id := c.Param("id")
+	cfg := config.Get()
+
+	var instance *config.SonarrInstance
+	for i := range cfg.Sonarr {
+		if cfg.Sonarr[i].ID == id {
+			instance = &cfg.Sonarr[i]
+			break
+		}
+	}
+
+	if instance == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "instance not found"})
+		return
+	}
+
+	url := strings.TrimRight(instance.URL, "/") + "/api/v3/system/status"
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, url, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid URL", "ok": false})
+		return
+	}
+	req.Header.Set("X-Api-Key", instance.APIKey)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"ok":    false,
+			"error": "could not reach Sonarr — check the URL is correct and Sonarr is running",
+		})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.JSON(http.StatusOK, gin.H{
+			"ok":    false,
+			"error": "connected but API key was rejected",
+		})
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusOK, gin.H{
+			"ok":    false,
+			"error": fmt.Sprintf("Sonarr returned unexpected status %d", resp.StatusCode),
+		})
+		return
+	}
+
+	var status struct {
+		Version string `json:"version"`
+	}
+	json.NewDecoder(resp.Body).Decode(&status)
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":      true,
+		"version": status.Version,
+	})
 }
