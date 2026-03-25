@@ -21,6 +21,7 @@ import {
 import api from "@/lib/api";
 import type { SonarrInstance } from "@/types";
 import { KeyRound } from "lucide-react";
+import axios from "axios";
 
 interface InstanceFormProps {
   initial?: SonarrInstance;
@@ -155,10 +156,14 @@ export default function SettingsPage() {
       setNewPassword("");
       setConfirmPassword("");
       setTimeout(() => setPasswordSaved(false), 3000);
-    } catch (err: any) {
-      setPasswordError(
-        err.response?.data?.error ?? "Failed to change password",
-      );
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setPasswordError(
+          err.response?.data?.error ?? "Failed to change password",
+        );
+      } else {
+        setPasswordError("Failed to change password");
+      }
     } finally {
       setPasswordSaving(false);
     }
