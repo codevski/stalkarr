@@ -46,6 +46,7 @@ func NewRouter() *gin.Engine {
 		protected.GET("/dashboard", getDashboard)
 		protected.GET("/version", getVersion)
 		protected.POST("/settings/sonarr/:id/test", testSonarrInstance)
+		protected.POST("/auth/password", handleChangePassword)
 
 		sonarr := protected.Group("/sonarr/:id")
 		{

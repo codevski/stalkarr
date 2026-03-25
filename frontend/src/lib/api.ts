@@ -13,12 +13,20 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url ?? "";
+    const is401 = err.response?.status === 401;
+
+    // don't logout
+    const skipLogout = ["/api/auth/password", "/api/login"].some((path) =>
+      url.includes(path),
+    );
+
+    if (is401 && !skipLogout) {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }
+
     return Promise.reject(err);
   },
 );
-
 export default api;

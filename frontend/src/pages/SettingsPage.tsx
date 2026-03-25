@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import type { SonarrInstance } from "@/types";
+import { KeyRound } from "lucide-react";
 
 interface InstanceFormProps {
   initial?: SonarrInstance;
@@ -126,6 +127,43 @@ export default function SettingsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+
+  async function handleChangePassword() {
+    setPasswordError(null);
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      await api.post("/api/auth/password", {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setPasswordSaved(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSaved(false), 3000);
+    } catch (err: any) {
+      setPasswordError(
+        err.response?.data?.error ?? "Failed to change password",
+      );
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
   useEffect(() => {
     api.get("/api/settings").then((res) => setInstances(res.data.sonarr));
   }, []);
@@ -162,6 +200,74 @@ export default function SettingsPage() {
           Configure your arr apps
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-base">Change Password</CardTitle>
+          </div>
+          <CardDescription>Update your admin password</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label>Current Password</Label>
+            <Input
+              type="password"
+              placeholder="Enter current password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                placeholder="Min 8 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Confirm New Password</Label>
+              <Input
+                type="password"
+                placeholder="Repeat new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          {passwordError && (
+            <p className="text-sm text-destructive">{passwordError}</p>
+          )}
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              onClick={handleChangePassword}
+              disabled={
+                passwordSaving ||
+                !currentPassword ||
+                !newPassword ||
+                !confirmPassword
+              }
+            >
+              {passwordSaving ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              Update Password
+            </Button>
+            {passwordSaved && (
+              <span className="text-sm text-green-500 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Password updated
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Sonarr */}
       <Card>

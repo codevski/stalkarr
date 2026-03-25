@@ -106,3 +106,40 @@ func handleSetupUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "user created"})
 }
+
+func handleChangePassword(c *gin.Context) {
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	if len(req.NewPassword) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be at least 8 characters"})
+		return
+	}
+
+	cfg := config.Get()
+
+	if err := bcrypt.CompareHashAndPassword([]byte(cfg.Auth.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "current password is incorrect"})
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
+		return
+	}
+
+	cfg.Auth.PasswordHash = string(hash)
+	if err := config.Save(cfg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save config"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
