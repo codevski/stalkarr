@@ -1,0 +1,19 @@
+meta {
+  name: Get Missing Episodes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/sonarr/missing
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Returns missing episodes from Sonarr.
+  Requires Sonarr URL and API key saved in settings first.
+}

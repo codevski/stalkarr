@@ -1,0 +1,31 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "admin",
+    "password": "yourpassword"
+  }
+}
+
+script:post-response {
+  const token = res.getBody()?.token;
+  if (token) {
+    bru.setEnvVar("token", token);
+    console.log("Token saved to environment");
+  }
+}
+
+docs {
+  Logs in and automatically saves the JWT token to the Local environment.
+  Run this before any protected endpoints.
+}
