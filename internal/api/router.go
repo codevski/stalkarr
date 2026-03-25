@@ -33,6 +33,7 @@ func NewRouter() *gin.Engine {
 	{
 		public.POST("/login", strictRateLimiter(), handleLogin)
 		public.POST("/setup", strictRateLimiter(), handleSetupUser)
+		public.POST("/auth/refresh", handleRefresh)
 	}
 
 	protected := r.Group("/api")
@@ -46,6 +47,7 @@ func NewRouter() *gin.Engine {
 		protected.GET("/dashboard", getDashboard)
 		protected.GET("/version", getVersion)
 		protected.POST("/settings/sonarr/:id/test", testSonarrInstance)
+		protected.POST("/auth/logout", handleLogout)
 		protected.POST("/auth/password", handleChangePassword)
 
 		sonarr := protected.Group("/sonarr/:id")

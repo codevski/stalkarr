@@ -13,6 +13,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Footer from "./Footer";
+import api from "@/lib/api";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -25,9 +26,13 @@ export default function Layout() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  function logout() {
-    localStorage.removeItem("token");
-    navigate("/login");
+  async function logout() {
+    try {
+      await api.post("/api/auth/logout");
+    } finally {
+      localStorage.removeItem("token");
+      navigate("/login");
+    }
   }
 
   return (

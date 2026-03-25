@@ -15,8 +15,9 @@ type SonarrInstance struct {
 }
 
 type AuthConfig struct {
-	Username     string `json:"username"`
-	PasswordHash string `json:"password_hash"`
+	Username         string `json:"username"`
+	PasswordHash     string `json:"password_hash"`
+	RefreshTokenHash string `json:"refresh_token_hash,omitempty"`
 }
 
 type Config struct {

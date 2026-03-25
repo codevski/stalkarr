@@ -1,6 +1,9 @@
 package api
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -18,20 +21,91 @@ var jwtSecret = []byte(mustGetJWTSecret())
 func mustGetJWTSecret() string {
 	s := os.Getenv("JWT_SECRET")
 	if s == "" {
-		// Safe fallback for local dev log a warning
 		println("WARNING: JWT_SECRET not set, using insecure default. Set it before exposing to internet.")
-		s = "change-me-set-JWT_SECRET-env-var"
+		return "insecure-default-secret-change-me"
 	}
 	return s
 }
 
-type loginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+const (
+	accessTokenDuration  = 15 * time.Minute
+	refreshTokenDuration = 7 * 24 * time.Hour
+	refreshCookieName    = "stalkarr_refresh"
+)
+
+func generateAccessToken(username string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": username,
+		"exp": time.Now().Add(accessTokenDuration).Unix(),
+		"iat": time.Now().Unix(),
+	})
+	return token.SignedString(jwtSecret)
+}
+
+func generateRefreshToken() (raw string, hashed string, err error) {
+	b := make([]byte, 32)
+	if _, err = rand.Read(b); err != nil {
+		return
+	}
+	raw = hex.EncodeToString(b)
+	sum := sha256.Sum256([]byte(raw))
+	hashed = hex.EncodeToString(sum[:])
+	return
+}
+
+func setRefreshCookie(c *gin.Context, token string) {
+	c.SetCookie(
+		refreshCookieName,
+		token,
+		int(refreshTokenDuration.Seconds()),
+		"/",
+		"",
+		false,
+		true,
+	)
+}
+
+func clearRefreshCookie(c *gin.Context) {
+	c.SetCookie(refreshCookieName, "", -1, "/", "", false, true)
+}
+
+func handleSetupUser(c *gin.Context) {
+	cfg := config.Get()
+	if cfg.Auth.Username != "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "already configured"})
+		return
+	}
+
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Username == "" || req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password required"})
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
+		return
+	}
+
+	cfg.Auth.Username = req.Username
+	cfg.Auth.PasswordHash = string(hash)
+	if err := config.Save(cfg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save config"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func handleLogin(c *gin.Context) {
-	var req loginRequest
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password required"})
 		return
@@ -64,47 +138,61 @@ func handleLogin(c *gin.Context) {
 
 	clearFailures(ip)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": req.Username,
-		"exp": time.Now().Add(24 * time.Hour).Unix(),
-		"iat": time.Now().Unix(),
-	})
-	signed, err := token.SignedString(jwtSecret)
+	accessToken, err := generateAccessToken(req.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not sign token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"token": signed})
+
+	rawRefresh, hashedRefresh, err := generateRefreshToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate refresh token"})
+		return
+	}
+
+	// Store hash in config
+	cfg.Auth.RefreshTokenHash = hashedRefresh
+	if err := config.Save(cfg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save session"})
+		return
+	}
+
+	setRefreshCookie(c, rawRefresh)
+	c.JSON(http.StatusOK, gin.H{"token": accessToken})
 }
 
-func handleSetupUser(c *gin.Context) {
-	cfg := config.Get()
-	if cfg.Auth.Username != "" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "user already configured"})
-		return
-	}
-
-	var req loginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password required"})
-		return
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+func handleRefresh(c *gin.Context) {
+	rawToken, err := c.Cookie(refreshCookieName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "no refresh token"})
 		return
 	}
 
-	cfg.Auth.Username = req.Username
-	cfg.Auth.PasswordHash = string(hash)
+	sum := sha256.Sum256([]byte(rawToken))
+	incomingHash := hex.EncodeToString(sum[:])
 
-	if err := config.Save(cfg); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save config"})
+	cfg := config.Get()
+	if cfg.Auth.RefreshTokenHash == "" || incomingHash != cfg.Auth.RefreshTokenHash {
+		clearRefreshCookie(c)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "user created"})
+	accessToken, err := generateAccessToken(cfg.Auth.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": accessToken})
+}
+
+func handleLogout(c *gin.Context) {
+	cfg := config.Get()
+	cfg.Auth.RefreshTokenHash = ""
+	config.Save(cfg)
+	clearRefreshCookie(c)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func handleChangePassword(c *gin.Context) {
@@ -123,7 +211,6 @@ func handleChangePassword(c *gin.Context) {
 	}
 
 	cfg := config.Get()
-
 	if err := bcrypt.CompareHashAndPassword([]byte(cfg.Auth.PasswordHash), []byte(req.CurrentPassword)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "current password is incorrect"})
 		return
@@ -136,10 +223,12 @@ func handleChangePassword(c *gin.Context) {
 	}
 
 	cfg.Auth.PasswordHash = string(hash)
+	cfg.Auth.RefreshTokenHash = ""
 	if err := config.Save(cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save config"})
 		return
 	}
 
+	clearRefreshCookie(c)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
