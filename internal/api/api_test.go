@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"stalkarr/internal/config"
+
+	"github.com/gin-gonic/gin"
 )
 
 func setupTestRouter(t *testing.T) {
@@ -17,6 +19,10 @@ func setupTestRouter(t *testing.T) {
 		t.Fatalf("config init failed: %v", err)
 	}
 	resetRateLimiter()
+}
+
+func newTestRouter() *gin.Engine {
+	return NewRouter(nil)
 }
 
 func postJSON(router http.Handler, path string, body any) *httptest.ResponseRecorder {
@@ -42,9 +48,8 @@ func getWithToken(router http.Handler, path, token string) *httptest.ResponseRec
 
 func TestSetupAndLogin(t *testing.T) {
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 
-	// Setup user
 	w := postJSON(router, "/api/setup", map[string]string{
 		"username": "admin",
 		"password": "testpassword",
@@ -53,7 +58,6 @@ func TestSetupAndLogin(t *testing.T) {
 		t.Fatalf("setup failed: %d %s", w.Code, w.Body.String())
 	}
 
-	// Login
 	w = postJSON(router, "/api/login", map[string]string{
 		"username": "admin",
 		"password": "testpassword",
@@ -71,7 +75,7 @@ func TestSetupAndLogin(t *testing.T) {
 
 func TestLoginWrongPassword(t *testing.T) {
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 
 	postJSON(router, "/api/setup", map[string]string{
 		"username": "admin",
@@ -89,15 +93,13 @@ func TestLoginWrongPassword(t *testing.T) {
 
 func TestSetupOnlyWorksOnce(t *testing.T) {
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 
 	postJSON(router, "/api/setup", map[string]string{
 		"username": "admin",
 		"password": "password",
 	})
 
-	// Second setup attempt should be rejected either 403
-	// or 429 (rate limited) both are correct rejections
 	w := postJSON(router, "/api/setup", map[string]string{
 		"username": "admin2",
 		"password": "password2",
@@ -109,7 +111,7 @@ func TestSetupOnlyWorksOnce(t *testing.T) {
 
 func TestProtectedRouteRequiresToken(t *testing.T) {
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 
 	w := getWithToken(router, "/api/settings", "")
 	if w.Code != http.StatusUnauthorized {
@@ -119,7 +121,7 @@ func TestProtectedRouteRequiresToken(t *testing.T) {
 
 func TestProtectedRouteRejectsInvalidToken(t *testing.T) {
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 
 	w := getWithToken(router, "/api/settings", "not.a.valid.token")
 	if w.Code != http.StatusUnauthorized {
@@ -146,10 +148,9 @@ func getToken(t *testing.T, router http.Handler) string {
 
 func TestAPIKeyNeverLeaksInGetSettings(t *testing.T) {
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 	token := getToken(t, router)
 
-	// Save a Sonarr instance with a real API key
 	body, _ := json.Marshal(map[string]any{
 		"name":    "Sonarr",
 		"url":     "http://localhost:8989",
@@ -171,7 +172,6 @@ func TestAPIKeyNeverLeaksInGetSettings(t *testing.T) {
 	}
 
 	responseBody := w.Body.String()
-
 	if contains(responseBody, "super-secret-api-key-1234") {
 		t.Fatal("SECURITY: raw API key found in GET /api/settings response")
 	}
@@ -189,7 +189,7 @@ func TestAPIKeyNeverLeaksInGetSettings(t *testing.T) {
 
 func TestAPIKeyHintOnlyShowsLastFour(t *testing.T) {
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 	token := getToken(t, router)
 
 	body, _ := json.Marshal(map[string]any{
@@ -232,7 +232,7 @@ func TestBruteForceProtection(t *testing.T) {
 	loginAttemptsMu.Unlock()
 
 	setupTestRouter(t)
-	router := NewRouter()
+	router := newTestRouter()
 
 	postJSON(router, "/api/setup", map[string]string{
 		"username": "admin",
@@ -241,7 +241,6 @@ func TestBruteForceProtection(t *testing.T) {
 
 	body := map[string]string{"username": "admin", "password": "wrongpassword"}
 
-	// First 4 attempts should return 401
 	for i := 0; i < 4; i++ {
 		w := postJSON(router, "/api/login", body)
 		if w.Code != http.StatusUnauthorized {
@@ -249,13 +248,12 @@ func TestBruteForceProtection(t *testing.T) {
 		}
 	}
 
-	// 5th attempt should trigger lockout 429
 	w := postJSON(router, "/api/login", body)
 	if w.Code != http.StatusTooManyRequests {
 		t.Fatalf("expected 429 after lockout, got %d: %s", w.Code, w.Body.String())
 	}
 
-	t.Logf("lockout response body: %s", w.Body.String()) // ← add this temporarily
+	t.Logf("lockout response body: %s", w.Body.String())
 
 	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)

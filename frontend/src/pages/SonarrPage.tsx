@@ -24,6 +24,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { MissingResult, Episode, SonarrInstance } from "@/types";
+import { toast } from "sonner";
 
 export default function SonarrPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -122,11 +123,39 @@ export default function SonarrPage() {
   }
 
   async function hunt(ids?: number[]) {
+    const episodeIds = ids ?? episodes.map((e) => e.id);
+    if (episodeIds.length === 0) return;
+
     setHunting(true);
     try {
-      await api.post(`/api/sonarr/${activeId}/hunt`, { ids: ids ?? [] });
+      const res = await api.post(`/api/sonarr/${activeId}/hunt`, {
+        episodeIds,
+      });
+      toast.success("Hunt triggered", {
+        description: res.data.message,
+      });
+    } catch (err: any) {
+      toast.error("Hunt failed", {
+        description: err.response?.data?.error ?? "Could not reach server",
+      });
     } finally {
-      setTimeout(() => setHunting(false), 2000);
+      setHunting(false);
+    }
+  }
+
+  async function huntAll() {
+    setHunting(true);
+    try {
+      const res = await api.post(`/api/sonarr/${activeId}/hunt/all`);
+      toast.success("Hunt All triggered", {
+        description: res.data.message,
+      });
+    } catch (err: any) {
+      toast.error("Hunt failed", {
+        description: err.response?.data?.error ?? "Could not reach server",
+      });
+    } finally {
+      setHunting(false);
     }
   }
 
@@ -175,7 +204,7 @@ export default function SonarrPage() {
               Hunt {selected.size} selected
             </Button>
           )}
-          <Button size="sm" onClick={() => hunt()} disabled={hunting}>
+          <Button size="sm" onClick={huntAll} disabled={hunting}>
             {hunting ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
             ) : (

@@ -10,13 +10,17 @@ import type { InstanceSummary } from "@/types";
 export default function DashboardPage() {
   const [sonarr, setSonarr] = useState<InstanceSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [huntsToday, setHuntsToday] = useState(0);
 
   useEffect(() => {
     api
       .get("/api/dashboard")
-      .then((res) => setSonarr(res.data.sonarr))
+      .then((res) => {
+        setSonarr(res.data.sonarr);
+        setHuntsToday(res.data.huntsToday);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [setHuntsToday]);
 
   const totalMissing = sonarr.reduce(
     (acc, s) => acc + (s.missingCount ?? 0),
@@ -39,7 +43,10 @@ export default function DashboardPage() {
             value: loading ? "—" : totalMissing.toLocaleString(),
           },
           { label: "Missing Movies", value: "—" },
-          { label: "Hunts Today", value: "0" },
+          {
+            label: "Hunts Today",
+            value: loading ? "—" : huntsToday.toString(),
+          },
           { label: "Found Today", value: "0" },
         ].map(({ label, value }) => (
           <div key={label} className="bg-secondary/50 rounded-lg p-4">
@@ -112,7 +119,14 @@ export default function DashboardPage() {
                         <span className="text-muted-foreground flex items-center gap-1.5">
                           <Clock className="w-3 h-3" /> Last hunt
                         </span>
-                        <span className="text-muted-foreground">Never</span>
+                        <span className="text-muted-foreground">
+                          {inst.lastHunt
+                            ? new Date(inst.lastHunt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "Never"}
+                        </span>
                       </div>
                     </>
                   )}

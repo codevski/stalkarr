@@ -23,6 +23,14 @@ type AuthConfig struct {
 type Config struct {
 	Auth   AuthConfig       `json:"auth"`
 	Sonarr []SonarrInstance `json:"sonarr"`
+	Hunt   HuntConfig       `json:"hunt"`
+}
+
+type HuntConfig struct {
+	Enabled         bool `json:"enabled"`
+	IntervalMinutes int  `json:"intervalMinutes"`
+	EpisodesPerRun  int  `json:"episodesPerRun"`
+	CooldownHours   int  `json:"cooldownHours"`
 }
 
 var (
@@ -50,6 +58,15 @@ func load() error {
 		return err
 	}
 	defer f.Close()
+
+	current = Config{
+		Hunt: HuntConfig{
+			Enabled:         false,
+			IntervalMinutes: 60,
+			EpisodesPerRun:  10,
+			CooldownHours:   24,
+		},
+	}
 	return json.NewDecoder(f).Decode(&current)
 }
 

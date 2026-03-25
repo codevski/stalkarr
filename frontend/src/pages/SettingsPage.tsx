@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Tv,
   Plus,
@@ -19,12 +20,14 @@ import {
   Pencil,
   Wifi,
   AlertCircle,
+  Timer,
 } from "lucide-react";
 import api from "@/lib/api";
 import type { SonarrInstance } from "@/types";
 import { KeyRound } from "lucide-react";
 import axios from "axios";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface InstanceFormProps {
   initial?: SonarrInstance;
@@ -202,6 +205,16 @@ export default function SettingsPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [hunt, setHunt] = useState({
+    enabled: false,
+    intervalMinutes: 60,
+    episodesPerRun: 10,
+    cooldownHours: 24,
+  });
+  const [huntSaving, setHuntSaving] = useState(false);
+  const [huntSaved, setHuntSaved] = useState(false);
+
+  const navigate = useNavigate();
 
   async function handleChangePassword() {
     setPasswordError(null);
@@ -219,11 +232,9 @@ export default function SettingsPage() {
         current_password: currentPassword,
         new_password: newPassword,
       });
-      setPasswordSaved(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setTimeout(() => setPasswordSaved(false), 3000);
+      // Password changed — clear local token and redirect to login
+      localStorage.removeItem("token");
+      navigate("/login");
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setPasswordError(
@@ -239,6 +250,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     api.get("/api/settings").then((res) => setInstances(res.data.sonarr));
+    api.get("/api/settings/hunt").then((res) => setHunt(res.data));
   }, []);
 
   async function addInstance(data: {
@@ -263,6 +275,19 @@ export default function SettingsPage() {
   async function deleteInstance(id: string) {
     await api.delete(`/api/settings/sonarr/${id}`);
     setInstances((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  async function saveHuntSettings() {
+    setHuntSaving(true);
+    setHuntSaved(false);
+    try {
+      const res = await api.post("/api/settings/hunt", hunt);
+      setHunt(res.data);
+      setHuntSaved(true);
+      setTimeout(() => setHuntSaved(false), 3000);
+    } finally {
+      setHuntSaving(false);
+    }
   }
 
   return (
@@ -336,6 +361,90 @@ export default function SettingsPage() {
             {passwordSaved && (
               <span className="text-sm text-green-500 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Password updated
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Timer className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-base">Auto Hunter</CardTitle>
+            </div>
+            <Switch
+              checked={hunt.enabled}
+              onCheckedChange={(checked) =>
+                setHunt((prev) => ({ ...prev, enabled: checked }))
+              }
+            />
+          </div>
+          <CardDescription>
+            Automatically hunt missing episodes on a schedule
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Interval (minutes)</Label>
+              <Input
+                type="number"
+                min={1}
+                value={hunt.intervalMinutes}
+                onChange={(e) =>
+                  setHunt((prev) => ({
+                    ...prev,
+                    intervalMinutes: Number(e.target.value),
+                  }))
+                }
+                disabled={!hunt.enabled}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Episodes per run</Label>
+              <Input
+                type="number"
+                min={1}
+                value={hunt.episodesPerRun}
+                onChange={(e) =>
+                  setHunt((prev) => ({
+                    ...prev,
+                    episodesPerRun: Number(e.target.value),
+                  }))
+                }
+                disabled={!hunt.enabled}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Cooldown (hours)</Label>
+              <Input
+                type="number"
+                min={1}
+                value={hunt.cooldownHours}
+                onChange={(e) =>
+                  setHunt((prev) => ({
+                    ...prev,
+                    cooldownHours: Number(e.target.value),
+                  }))
+                }
+                disabled={!hunt.enabled}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button size="sm" onClick={saveHuntSettings} disabled={huntSaving}>
+              {huntSaving ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              Save
+            </Button>
+            {huntSaved && (
+              <span className="text-sm text-green-500 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Saved
               </span>
             )}
           </div>

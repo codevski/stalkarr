@@ -205,3 +205,32 @@ func testSonarrInstance(c *gin.Context) {
 		"version": status.Version,
 	})
 }
+func getHuntSettings(c *gin.Context) {
+	cfg := config.Get()
+	c.JSON(http.StatusOK, cfg.Hunt)
+}
+
+func saveHuntSettings(c *gin.Context) {
+	var req config.HuntConfig
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+	// Enforce sane minimums
+	if req.IntervalMinutes < 1 {
+		req.IntervalMinutes = 1
+	}
+	if req.EpisodesPerRun < 1 {
+		req.EpisodesPerRun = 1
+	}
+	if req.CooldownHours < 1 {
+		req.CooldownHours = 1
+	}
+	cfg := config.Get()
+	cfg.Hunt = req
+	if err := config.Save(cfg); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save"})
+		return
+	}
+	c.JSON(http.StatusOK, cfg.Hunt)
+}

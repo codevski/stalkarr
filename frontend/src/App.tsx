@@ -5,6 +5,7 @@ import SonarrPage from "./pages/SonarrPage";
 import StatsPage from "./pages/StatsPage";
 import SettingsPage from "./pages/SettingsPage";
 import Layout from "./components/Layout";
+import { Toaster } from "sonner";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem("token");
@@ -19,6 +20,7 @@ export default function App() {
         path="/"
         element={
           <PrivateRoute>
+            <Toaster />
             <Layout />
           </PrivateRoute>
         }
