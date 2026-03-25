@@ -10,17 +10,17 @@ import type { InstanceSummary } from "@/types";
 export default function DashboardPage() {
   const [sonarr, setSonarr] = useState<InstanceSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [huntsToday, setHuntsToday] = useState(0);
+  const [stalksToday, setStalksToday] = useState(0);
 
   useEffect(() => {
     api
       .get("/api/dashboard")
       .then((res) => {
         setSonarr(res.data.sonarr);
-        setHuntsToday(res.data.huntsToday);
+        setStalksToday(res.data.stalksToday);
       })
       .finally(() => setLoading(false));
-  }, [setHuntsToday]);
+  }, [setStalksToday]);
 
   const totalMissing = sonarr.reduce(
     (acc, s) => acc + (s.missingCount ?? 0),
@@ -44,8 +44,8 @@ export default function DashboardPage() {
           },
           { label: "Missing Movies", value: "—" },
           {
-            label: "Hunts Today",
-            value: loading ? "—" : huntsToday.toString(),
+            label: "Stalks Today",
+            value: loading ? "—" : stalksToday.toString(),
           },
           { label: "Found Today", value: "0" },
         ].map(({ label, value }) => (
@@ -117,11 +117,11 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center justify-between text-sm mt-2">
                         <span className="text-muted-foreground flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" /> Last hunt
+                          <Clock className="w-3 h-3" /> Last stalk
                         </span>
                         <span className="text-muted-foreground">
-                          {inst.lastHunt
-                            ? new Date(inst.lastHunt).toLocaleTimeString([], {
+                          {inst.lastStalk
+                            ? new Date(inst.lastStalk).toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })

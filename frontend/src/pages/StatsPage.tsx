@@ -7,16 +7,16 @@ export default function StatsPage() {
       <div>
         <h1 className="text-xl font-semibold">Stats</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Hunt history and performance
+          Stalk history and performance
         </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Total Hunts", value: "0", icon: BarChart2 },
+          { label: "Total Stalks", value: "0", icon: BarChart2 },
           { label: "Episodes Found", value: "0", icon: CheckCircle2 },
           { label: "Success Rate", value: "—", icon: TrendingUp },
-          { label: "Avg Hunt Time", value: "—", icon: Clock },
+          { label: "Avg Stalk Time", value: "—", icon: Clock },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-secondary/50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -30,14 +30,14 @@ export default function StatsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Hunt History</CardTitle>
+          <CardTitle className="text-base">Stalk History</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
             <BarChart2 className="w-8 h-8 opacity-30" />
-            <p className="text-sm">No hunt history yet</p>
+            <p className="text-sm">No stalk history yet</p>
             <p className="text-xs">
-              Stats will appear here once hunting begins
+              Stats will appear here once stalking begins
             </p>
           </div>
         </CardContent>

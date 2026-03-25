@@ -38,7 +38,7 @@ func (c *SonarrClient) GetMissingEpisodes(page, pageSize int, search string) (Mi
 		c.BaseURL, c.APIKey, page, pageSize,
 	)
 
-	// TODO: Fetch all and filter needs to be optimised!
+	// TODO: Fetch all and filter needs to be optimised! Need to read me on sonarr docs
 	if search != "" {
 		url = fmt.Sprintf(
 			"%s/api/v3/wanted/missing?apikey=%s&page=1&pageSize=500&includeSeries=true",

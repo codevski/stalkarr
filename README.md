@@ -2,7 +2,7 @@
 
 > **Personal project in BETA!** I built this for my own homelab using the tools I use daily: [Zed](https://zed.dev), [Claude](https://claude.ai), and [OpenCode](https://opencode.ai). AI is part of my regular workflow the same way Stack Overflow and docs always have been. If you spot any issues, chuck in a ticket and I'll get to it.
 
-A self-hosted dashboard for hunting missing media across your arr stack.
+A self-hosted dashboard for searching missing media across your arr stack.
 
 > Currently supports **Sonarr**. Radarr support coming soon.
 

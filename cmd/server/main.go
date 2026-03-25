@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"stalkarr/internal/api"
 	"stalkarr/internal/config"
+	"stalkarr/internal/jobs"
 	"syscall"
 	"time"
 
@@ -28,7 +29,12 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	r := api.NewRouter()
+	stalkerCtx, stalkerCancel := context.WithCancel(context.Background())
+	defer stalkerCancel()
+	stalker := jobs.NewStalkerJob(config.Get)
+	go stalker.Start(stalkerCtx)
+
+	r := api.NewRouter(stalker)
 	r.SetTrustedProxies(nil)
 
 	port := os.Getenv("PORT")
@@ -53,13 +59,12 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down...")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	stalkerCancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("forced shutdown: %v", err)
 	}
-
 	log.Println("Stalkarr stopped")
 }

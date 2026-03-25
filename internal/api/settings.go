@@ -143,6 +143,7 @@ func deleteSonarrInstance(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }
 
+// TODO: Should be able to test before adding a instance
 func testSonarrInstance(c *gin.Context) {
 	id := c.Param("id")
 	cfg := config.Get()
@@ -205,18 +206,18 @@ func testSonarrInstance(c *gin.Context) {
 		"version": status.Version,
 	})
 }
-func getHuntSettings(c *gin.Context) {
+
+func getStalkSettings(c *gin.Context) {
 	cfg := config.Get()
-	c.JSON(http.StatusOK, cfg.Hunt)
+	c.JSON(http.StatusOK, cfg.Stalk)
 }
 
-func saveHuntSettings(c *gin.Context) {
-	var req config.HuntConfig
+func saveStalkSettings(c *gin.Context) {
+	var req config.StalkConfig
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
-	// Enforce sane minimums
 	if req.IntervalMinutes < 1 {
 		req.IntervalMinutes = 1
 	}
@@ -227,10 +228,10 @@ func saveHuntSettings(c *gin.Context) {
 		req.CooldownHours = 1
 	}
 	cfg := config.Get()
-	cfg.Hunt = req
+	cfg.Stalk = req
 	if err := config.Save(cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save"})
 		return
 	}
-	c.JSON(http.StatusOK, cfg.Hunt)
+	c.JSON(http.StatusOK, cfg.Stalk)
 }

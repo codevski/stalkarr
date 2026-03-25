@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { MissingResult, Episode, SonarrInstance } from "@/types";
 import { toast } from "sonner";
+import axios from "axios";
 
 export default function SonarrPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,7 +33,7 @@ export default function SonarrPage() {
   const [activeId, setActiveId] = useState<string>("");
   const [data, setData] = useState<MissingResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [hunting, setHunting] = useState(false);
+  const [stalking, setStalking] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -122,40 +123,44 @@ export default function SonarrPage() {
     }
   }
 
-  async function hunt(ids?: number[]) {
+  async function stalk(ids?: number[]) {
     const episodeIds = ids ?? episodes.map((e) => e.id);
     if (episodeIds.length === 0) return;
 
-    setHunting(true);
+    setStalking(true);
     try {
-      const res = await api.post(`/api/sonarr/${activeId}/hunt`, {
+      const res = await api.post(`/api/sonarr/${activeId}/stalk`, {
         episodeIds,
       });
-      toast.success("Hunt triggered", {
+      toast.success("Stalk triggered", {
         description: res.data.message,
       });
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Hunt failed", {
-        description: err.response?.data?.error ?? "Could not reach server",
+        description: axios.isAxiosError(err)
+          ? (err.response?.data?.error ?? "Could not reach server")
+          : "Could not reach server",
       });
     } finally {
-      setHunting(false);
+      setStalking(false);
     }
   }
 
-  async function huntAll() {
-    setHunting(true);
+  async function stalkAll() {
+    setStalking(true);
     try {
-      const res = await api.post(`/api/sonarr/${activeId}/hunt/all`);
-      toast.success("Hunt All triggered", {
+      const res = await api.post(`/api/sonarr/${activeId}/stalk/all`);
+      toast.success("Stalk All triggered", {
         description: res.data.message,
       });
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Hunt failed", {
-        description: err.response?.data?.error ?? "Could not reach server",
+        description: axios.isAxiosError(err)
+          ? (err.response?.data?.error ?? "Could not reach server")
+          : "Could not reach server",
       });
     } finally {
-      setHunting(false);
+      setStalking(false);
     }
   }
 
@@ -193,24 +198,24 @@ export default function SonarrPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => hunt([...selected])}
-              disabled={hunting}
+              onClick={() => stalk([...selected])}
+              disabled={stalking}
             >
-              {hunting ? (
+              {stalking ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
               ) : (
                 <Search className="w-3.5 h-3.5 mr-1.5" />
               )}
-              Hunt {selected.size} selected
+              Stalk {selected.size} selected
             </Button>
           )}
-          <Button size="sm" onClick={huntAll} disabled={hunting}>
-            {hunting ? (
+          <Button size="sm" onClick={stalkAll} disabled={stalking}>
+            {stalking ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
             ) : (
               <Search className="w-3.5 h-3.5 mr-1.5" />
             )}
-            Hunt All
+            Stalk All
           </Button>
         </div>
       </div>

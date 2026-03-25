@@ -26,8 +26,8 @@ export interface InstanceSummary {
   id: string;
   name: string;
   missingCount: number;
-  lastHunt: string | null;
-  lastHuntCount: number;
+  lastStalk: string | null;
+  lastStalkCount: number;
   state: string;
   error?: string;
 }

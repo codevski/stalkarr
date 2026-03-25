@@ -66,7 +66,7 @@ func (s *StatusTracker) SetError(instanceID string, err error) {
 	s.instances[instanceID] = existing
 }
 
-func (s *StatusTracker) RecordManualHunt(instanceID string, count int) {
+func (s *StatusTracker) RecordManualStalk(instanceID string, count int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := time.Now()

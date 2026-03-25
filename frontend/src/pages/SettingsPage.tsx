@@ -204,15 +204,14 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSaved, setPasswordSaved] = useState(false);
-  const [hunt, setHunt] = useState({
+  const [stalk, setStalk] = useState({
     enabled: false,
     intervalMinutes: 60,
     episodesPerRun: 10,
     cooldownHours: 24,
   });
-  const [huntSaving, setHuntSaving] = useState(false);
-  const [huntSaved, setHuntSaved] = useState(false);
+  const [stalkSaving, setStalkSaving] = useState(false);
+  const [stalkSaved, setStalkSaved] = useState(false);
 
   const navigate = useNavigate();
 
@@ -232,7 +231,6 @@ export default function SettingsPage() {
         current_password: currentPassword,
         new_password: newPassword,
       });
-      // Password changed — clear local token and redirect to login
       localStorage.removeItem("token");
       navigate("/login");
     } catch (err) {
@@ -250,7 +248,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     api.get("/api/settings").then((res) => setInstances(res.data.sonarr));
-    api.get("/api/settings/hunt").then((res) => setHunt(res.data));
+    api.get("/api/settings/stalk").then((res) => setStalk(res.data));
   }, []);
 
   async function addInstance(data: {
@@ -277,16 +275,16 @@ export default function SettingsPage() {
     setInstances((prev) => prev.filter((i) => i.id !== id));
   }
 
-  async function saveHuntSettings() {
-    setHuntSaving(true);
-    setHuntSaved(false);
+  async function saveStalkSettings() {
+    setStalkSaving(true);
+    setStalkSaved(false);
     try {
-      const res = await api.post("/api/settings/hunt", hunt);
-      setHunt(res.data);
-      setHuntSaved(true);
-      setTimeout(() => setHuntSaved(false), 3000);
+      const res = await api.post("/api/settings/stalk", stalk);
+      setStalk(res.data);
+      setStalkSaved(true);
+      setTimeout(() => setStalkSaved(false), 3000);
     } finally {
-      setHuntSaving(false);
+      setStalkSaving(false);
     }
   }
 
@@ -358,11 +356,6 @@ export default function SettingsPage() {
               )}
               Update Password
             </Button>
-            {passwordSaved && (
-              <span className="text-sm text-green-500 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Password updated
-              </span>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -372,17 +365,17 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Timer className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base">Auto Hunter</CardTitle>
+              <CardTitle className="text-base">Auto Stalker</CardTitle>
             </div>
             <Switch
-              checked={hunt.enabled}
+              checked={stalk.enabled}
               onCheckedChange={(checked) =>
-                setHunt((prev) => ({ ...prev, enabled: checked }))
+                setStalk((prev) => ({ ...prev, enabled: checked }))
               }
             />
           </div>
           <CardDescription>
-            Automatically hunt missing episodes on a schedule
+            Automatically stalk missing episodes on a schedule
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -392,14 +385,14 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={hunt.intervalMinutes}
+                value={stalk.intervalMinutes}
                 onChange={(e) =>
-                  setHunt((prev) => ({
+                  setStalk((prev) => ({
                     ...prev,
                     intervalMinutes: Number(e.target.value),
                   }))
                 }
-                disabled={!hunt.enabled}
+                disabled={!stalk.enabled}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -407,14 +400,14 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={hunt.episodesPerRun}
+                value={stalk.episodesPerRun}
                 onChange={(e) =>
-                  setHunt((prev) => ({
+                  setStalk((prev) => ({
                     ...prev,
                     episodesPerRun: Number(e.target.value),
                   }))
                 }
-                disabled={!hunt.enabled}
+                disabled={!stalk.enabled}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -422,27 +415,31 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={hunt.cooldownHours}
+                value={stalk.cooldownHours}
                 onChange={(e) =>
-                  setHunt((prev) => ({
+                  setStalk((prev) => ({
                     ...prev,
                     cooldownHours: Number(e.target.value),
                   }))
                 }
-                disabled={!hunt.enabled}
+                disabled={!stalk.enabled}
               />
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button size="sm" onClick={saveHuntSettings} disabled={huntSaving}>
-              {huntSaving ? (
+            <Button
+              size="sm"
+              onClick={saveStalkSettings}
+              disabled={stalkSaving}
+            >
+              {stalkSaving ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
               ) : (
                 <Save className="w-3.5 h-3.5 mr-1.5" />
               )}
               Save
             </Button>
-            {huntSaved && (
+            {stalkSaved && (
               <span className="text-sm text-green-500 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Saved
               </span>

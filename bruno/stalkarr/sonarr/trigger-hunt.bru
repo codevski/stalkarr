@@ -1,11 +1,11 @@
 meta {
-  name: Trigger Hunt
+  name: Trigger Stalk
   type: http
   seq: 2
 }
 
 post {
-  url: {{base_url}}/api/sonarr/hunt
+  url: {{base_url}}/api/sonarr/stalk
   body: none
   auth: bearer
 }
@@ -15,5 +15,5 @@ auth:bearer {
 }
 
 docs {
-  Triggers a hunt job. Currently a stub returns {"status": "hunting"}.
+  Triggers a stalk job. Currently a stub returns {"status": "stalking"}.
 }
