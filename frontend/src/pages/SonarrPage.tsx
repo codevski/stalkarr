@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Loader2,
   Tv,
+  AlertCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export default function SonarrPage() {
   const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const instanceParam = searchParams.get("instance");
@@ -63,12 +65,18 @@ export default function SonarrPage() {
   const fetchMissing = useCallback(async () => {
     if (!activeId) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get(`/api/sonarr/${activeId}/missing`, {
         params: { page, pageSize, search: debouncedSearch || undefined },
       });
       setData(res.data);
       setSelected(new Set());
+    } catch {
+      setError(
+        "Could not reach this Sonarr instance - check your URL and API key in Settings",
+      );
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -85,6 +93,7 @@ export default function SonarrPage() {
     setDebouncedSearch("");
     setData(null);
     setSelected(new Set());
+    setError(null);
     setSearchParams({ instance: id });
   }
 
@@ -282,6 +291,31 @@ export default function SonarrPage() {
                     <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                   </td>
                 </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <AlertCircle className="w-5 h-5 text-destructive" />
+                      <p className="text-sm text-destructive">{error}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchMissing}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ) : episodes.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="p-8 text-center text-muted-foreground text-sm"
+                  >
+                    No missing episodes found
+                  </td>
+                </tr>
               ) : (
                 episodes.map((ep) => (
                   <tr
@@ -323,6 +357,18 @@ export default function SonarrPage() {
           <div className="flex justify-center p-8">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
+        ) : error ? (
+          <div className="flex flex-col items-center gap-2 p-8 text-center">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            <p className="text-sm text-destructive">{error}</p>
+            <Button variant="outline" size="sm" onClick={fetchMissing}>
+              Retry
+            </Button>
+          </div>
+        ) : episodes.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center p-8">
+            No missing episodes found
+          </p>
         ) : (
           episodes.map((ep) => (
             <div
