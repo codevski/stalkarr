@@ -17,11 +17,14 @@ import {
   CheckCircle2,
   Loader2,
   Pencil,
+  Wifi,
+  AlertCircle,
 } from "lucide-react";
 import api from "@/lib/api";
 import type { SonarrInstance } from "@/types";
 import { KeyRound } from "lucide-react";
 import axios from "axios";
+import { cn } from "@/lib/utils";
 
 interface InstanceFormProps {
   initial?: SonarrInstance;
@@ -45,10 +48,40 @@ function InstanceForm({
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+
+  async function handleTest() {
+    if (!initial?.id) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await api.post(`/api/settings/sonarr/${initial.id}/test`);
+      setTestResult({
+        ok: true,
+        message: `Connected — Sonarr v${res.data.version}`,
+      });
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setTestResult({
+          ok: false,
+          message: err.response?.data?.error ?? "Could not reach Sonarr",
+        });
+      } else {
+        setTestResult({ ok: false, message: "Could not reach Sonarr" });
+      }
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
     setSaved(false);
+    setTestResult(null);
     try {
       await onSave({ name, url, api_key: apiKey });
       setSaved(true);
@@ -99,7 +132,8 @@ function InstanceForm({
           onChange={(e) => setApiKey(e.target.value)}
         />
       </div>
-      <div className="flex items-center gap-3">
+
+      <div className="flex items-center gap-3 flex-wrap">
         <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? (
             <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -108,14 +142,48 @@ function InstanceForm({
           )}
           {saveLabel}
         </Button>
+
+        {initial?.id && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleTest}
+            disabled={testing}
+          >
+            {testing ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Wifi className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            Test
+          </Button>
+        )}
+
         {onCancel && (
           <Button size="sm" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
         )}
+
         {saved && (
           <span className="text-sm text-green-500 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+          </span>
+        )}
+
+        {testResult && (
+          <span
+            className={cn(
+              "text-sm flex items-center gap-1.5",
+              testResult.ok ? "text-green-500" : "text-destructive",
+            )}
+          >
+            {testResult.ok ? (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            ) : (
+              <AlertCircle className="w-3.5 h-3.5" />
+            )}
+            {testResult.message}
           </span>
         )}
       </div>
