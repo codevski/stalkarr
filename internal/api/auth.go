@@ -232,3 +232,8 @@ func handleChangePassword(c *gin.Context) {
 	clearRefreshCookie(c)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
+
+func handleSetupStatus(c *gin.Context) {
+	cfg := config.Get()
+	c.JSON(http.StatusOK, gin.H{"configured": cfg.Auth.Username != ""})
+}

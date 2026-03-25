@@ -38,6 +38,7 @@ func NewRouter(stalker *jobs.StalkerJob) *gin.Engine {
 		public.POST("/login", strictRateLimiter(), handleLogin)
 		public.POST("/setup", strictRateLimiter(), handleSetupUser)
 		public.POST("/auth/refresh", handleRefresh)
+		public.GET("/setup/status", handleSetupStatus)
 	}
 
 	protected := r.Group("/api")

@@ -4,14 +4,14 @@ services:
     container_name: stalkarr
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:8080"
     volumes:
       - ./config:/config
     environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - GIN_MODE=release
-      - PUID=1000 # optional
-      - PGID=1000 # optional
-      - TZ=America/New_York # optional
+      - JWT_SECRET=${JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
+      - GIN_MODE=${GIN_MODE:-release}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/New_York}
     env_file:
       - .env
