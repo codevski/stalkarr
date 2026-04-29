@@ -10,7 +10,7 @@ import (
 var Version = "dev"
 
 const repoOwner = "codevski"
-const repoName = "stalkarr"
+const repoName = "sleeparr"
 
 type updateCache struct {
 	latest    string

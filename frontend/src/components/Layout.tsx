@@ -42,7 +42,7 @@ export default function Layout() {
           <div className="flex items-center gap-2 mr-2">
             <Radio className="w-4 h-4 text-primary" />
             <span className="font-semibold tracking-tight text-sm">
-              stalkarr
+              sleeparr
             </span>
           </div>
 

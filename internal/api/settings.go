@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"stalkarr/internal/config"
+	"sleeparr/internal/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -207,13 +207,13 @@ func testSonarrInstance(c *gin.Context) {
 	})
 }
 
-func getStalkSettings(c *gin.Context) {
+func getAgentSettings(c *gin.Context) {
 	cfg := config.Get()
-	c.JSON(http.StatusOK, cfg.Stalk)
+	c.JSON(http.StatusOK, cfg.Agent)
 }
 
-func saveStalkSettings(c *gin.Context) {
-	var req config.StalkConfig
+func saveAgentSettings(c *gin.Context) {
+	var req config.AgentConfig
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
@@ -228,10 +228,10 @@ func saveStalkSettings(c *gin.Context) {
 		req.CooldownHours = 1
 	}
 	cfg := config.Get()
-	cfg.Stalk = req
+	cfg.Agent = req
 	if err := config.Save(cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save"})
 		return
 	}
-	c.JSON(http.StatusOK, cfg.Stalk)
+	c.JSON(http.StatusOK, cfg.Agent)
 }

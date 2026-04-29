@@ -49,7 +49,7 @@ export default function SetupPage() {
           <div className="flex justify-center mb-2">
             <Radio className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">stalkarr</CardTitle>
+          <CardTitle className="text-2xl">sleeparr</CardTitle>
           <CardDescription>Create your admin account</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

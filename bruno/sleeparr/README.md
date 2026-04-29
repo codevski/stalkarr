@@ -1,11 +1,11 @@
-# Stalkarr — Bruno Collection
+# Sleeparr — Bruno Collection
 
-API tests for the Stalkarr backend. Uses [Bruno](https://www.usebruno.com/) a git-friendly API client.
+API tests for the Sleeparr backend. Uses [Bruno](https://www.usebruno.com/) a git-friendly API client.
 
 ## Setup
 
 1. Install Bruno: https://www.usebruno.com/downloads
-2. Open Bruno → **Open Collection** → select this `bruno/stalkarr` folder
+2. Open Bruno → **Open Collection** → select this `bruno/sleeparr` folder
 3. Select the **Local** environment (top right dropdown)
 
 ## First run order

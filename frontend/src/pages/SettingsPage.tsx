@@ -204,14 +204,14 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [stalk, setStalk] = useState({
+  const [agent, setAgent] = useState({
     enabled: false,
     intervalMinutes: 60,
     episodesPerRun: 10,
     cooldownHours: 24,
   });
-  const [stalkSaving, setStalkSaving] = useState(false);
-  const [stalkSaved, setStalkSaved] = useState(false);
+  const [runSaving, setRunSaving] = useState(false);
+  const [runSaved, setRunSaved] = useState(false);
 
   const navigate = useNavigate();
 
@@ -248,7 +248,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     api.get("/api/settings").then((res) => setInstances(res.data.sonarr));
-    api.get("/api/settings/stalk").then((res) => setStalk(res.data));
+    api.get("/api/settings/agent").then((res) => setAgent(res.data));
   }, []);
 
   async function addInstance(data: {
@@ -275,16 +275,16 @@ export default function SettingsPage() {
     setInstances((prev) => prev.filter((i) => i.id !== id));
   }
 
-  async function saveStalkSettings() {
-    setStalkSaving(true);
-    setStalkSaved(false);
+  async function saveRunSettings() {
+    setRunSaving(true);
+    setRunSaved(false);
     try {
-      const res = await api.post("/api/settings/stalk", stalk);
-      setStalk(res.data);
-      setStalkSaved(true);
-      setTimeout(() => setStalkSaved(false), 3000);
+      const res = await api.post("/api/settings/agent", agent);
+      setAgent(res.data);
+      setRunSaved(true);
+      setTimeout(() => setRunSaved(false), 3000);
     } finally {
-      setStalkSaving(false);
+      setRunSaving(false);
     }
   }
 
@@ -365,17 +365,17 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Timer className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base">Auto Stalker</CardTitle>
+              <CardTitle className="text-base">Auto Agent</CardTitle>
             </div>
             <Switch
-              checked={stalk.enabled}
+              checked={agent.enabled}
               onCheckedChange={(checked) =>
-                setStalk((prev) => ({ ...prev, enabled: checked }))
+                setAgent((prev) => ({ ...prev, enabled: checked }))
               }
             />
           </div>
           <CardDescription>
-            Automatically stalk missing episodes on a schedule
+            Automatically hunt missing episodes on a schedule
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -385,14 +385,14 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={stalk.intervalMinutes}
+                value={agent.intervalMinutes}
                 onChange={(e) =>
-                  setStalk((prev) => ({
+                  setAgent((prev) => ({
                     ...prev,
                     intervalMinutes: Number(e.target.value),
                   }))
                 }
-                disabled={!stalk.enabled}
+                disabled={!agent.enabled}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -400,14 +400,14 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={stalk.episodesPerRun}
+                value={agent.episodesPerRun}
                 onChange={(e) =>
-                  setStalk((prev) => ({
+                  setAgent((prev) => ({
                     ...prev,
                     episodesPerRun: Number(e.target.value),
                   }))
                 }
-                disabled={!stalk.enabled}
+                disabled={!agent.enabled}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -415,31 +415,27 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={stalk.cooldownHours}
+                value={agent.cooldownHours}
                 onChange={(e) =>
-                  setStalk((prev) => ({
+                  setAgent((prev) => ({
                     ...prev,
                     cooldownHours: Number(e.target.value),
                   }))
                 }
-                disabled={!stalk.enabled}
+                disabled={!agent.enabled}
               />
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              onClick={saveStalkSettings}
-              disabled={stalkSaving}
-            >
-              {stalkSaving ? (
+            <Button size="sm" onClick={saveRunSettings} disabled={runSaving}>
+              {runSaving ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
               ) : (
                 <Save className="w-3.5 h-3.5 mr-1.5" />
               )}
               Save
             </Button>
-            {stalkSaved && (
+            {runSaved && (
               <span className="text-sm text-green-500 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Saved
               </span>

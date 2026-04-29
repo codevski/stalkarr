@@ -33,7 +33,7 @@ export default function SonarrPage() {
   const [activeId, setActiveId] = useState<string>("");
   const [data, setData] = useState<MissingResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [stalking, setStalking] = useState(false);
+  const [running, setRunning] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -123,16 +123,16 @@ export default function SonarrPage() {
     }
   }
 
-  async function stalk(ids?: number[]) {
+  async function run(ids?: number[]) {
     const episodeIds = ids ?? episodes.map((e) => e.id);
     if (episodeIds.length === 0) return;
 
-    setStalking(true);
+    setRunning(true);
     try {
-      const res = await api.post(`/api/sonarr/${activeId}/stalk`, {
+      const res = await api.post(`/api/sonarr/${activeId}/run`, {
         episodeIds,
       });
-      toast.success("Stalk triggered", {
+      toast.success("Run triggered", {
         description: res.data.message,
       });
     } catch (err) {
@@ -142,15 +142,15 @@ export default function SonarrPage() {
           : "Could not reach server",
       });
     } finally {
-      setStalking(false);
+      setRunning(false);
     }
   }
 
-  async function stalkAll() {
-    setStalking(true);
+  async function runAll() {
+    setRunning(true);
     try {
-      const res = await api.post(`/api/sonarr/${activeId}/stalk/all`);
-      toast.success("Stalk All triggered", {
+      const res = await api.post(`/api/sonarr/${activeId}/run/all`);
+      toast.success("Run All triggered", {
         description: res.data.message,
       });
     } catch (err) {
@@ -160,7 +160,7 @@ export default function SonarrPage() {
           : "Could not reach server",
       });
     } finally {
-      setStalking(false);
+      setRunning(false);
     }
   }
 
@@ -198,24 +198,24 @@ export default function SonarrPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => stalk([...selected])}
-              disabled={stalking}
+              onClick={() => run([...selected])}
+              disabled={running}
             >
-              {stalking ? (
+              {running ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
               ) : (
                 <Search className="w-3.5 h-3.5 mr-1.5" />
               )}
-              Stalk {selected.size} selected
+              Run {selected.size} selected
             </Button>
           )}
-          <Button size="sm" onClick={stalkAll} disabled={stalking}>
-            {stalking ? (
+          <Button size="sm" onClick={runAll} disabled={running}>
+            {running ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
             ) : (
               <Search className="w-3.5 h-3.5 mr-1.5" />
             )}
-            Stalk All
+            Run All
           </Button>
         </div>
       </div>

@@ -41,7 +41,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-2">
             <Radio className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">stalkarr</CardTitle>
+          <CardTitle className="text-2xl">sleeparr</CardTitle>
           <CardDescription>Sign in to your instance</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

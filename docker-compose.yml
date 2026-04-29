@@ -1,7 +1,7 @@
 services:
-  stalkarr:
-    image: ghcr.io/codevski/stalkarr:latest
-    container_name: stalkarr
+  sleeparr:
+    image: ghcr.io/codevski/sleeparr:latest
+    container_name: sleeparr
     restart: unless-stopped
     ports:
       - "${PORT:-8080}:8080"

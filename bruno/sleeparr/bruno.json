@@ -1,11 +1,8 @@
 {
   "version": "1",
-  "name": "Stalkarr",
+  "name": "Sleeparr",
   "type": "collection",
-  "ignore": [
-    "node_modules",
-    ".git"
-  ],
+  "ignore": ["node_modules", ".git"],
   "size": 0.0018472671508789062,
   "filesCount": 7,
   "presets": {

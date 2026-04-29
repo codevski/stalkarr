@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"stalkarr/internal/config"
+	"sleeparr/internal/config"
 
 	"github.com/gin-gonic/gin"
 )

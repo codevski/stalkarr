@@ -7,45 +7,45 @@ import (
 	"math/rand"
 	"time"
 
-	"stalkarr/internal/arr"
-	"stalkarr/internal/config"
+	"sleeparr/internal/arr"
+	"sleeparr/internal/config"
 )
 
-type StalkerJob struct {
+type AgentJob struct {
 	cfg      func() config.Config
 	cooldown *CooldownTracker
 	status   *StatusTracker
 }
 
-func NewStalkerJob(cfg func() config.Config) *StalkerJob {
-	cooldownDur := time.Duration(cfg().Stalk.CooldownHours) * time.Hour
+func NewAgentJob(cfg func() config.Config) *AgentJob {
+	cooldownDur := time.Duration(cfg().Agent.CooldownHours) * time.Hour
 	if cooldownDur == 0 {
 		cooldownDur = 24 * time.Hour
 	}
-	return &StalkerJob{
+	return &AgentJob{
 		cfg:      cfg,
 		cooldown: NewCooldownTracker(cooldownDur),
 		status:   NewStatusTracker(),
 	}
 }
 
-func (h *StalkerJob) Status() JobStatus {
+func (h *AgentJob) Status() JobStatus {
 	return h.status.Get()
 }
 
-func (h *StalkerJob) Start(ctx context.Context) {
+func (h *AgentJob) Start(ctx context.Context) {
 	cfg := h.cfg()
-	if !cfg.Stalk.Enabled {
-		log.Println("[stalkarr] disabled — set stalk.enabled=true in config to activate")
+	if !cfg.Agent.Enabled {
+		log.Println("[sleeparr] disabled — set agent.enabled=true in config to activate")
 		return
 	}
-	log.Printf("[stalkarr] starting — interval=%dm, count=%d, cooldown=%dh",
-		h.cfg().Stalk.IntervalMinutes, h.cfg().Stalk.EpisodesPerRun, h.cfg().Stalk.CooldownHours)
+	log.Printf("[sleeparr] starting — interval=%dm, count=%d, cooldown=%dh",
+		h.cfg().Agent.IntervalMinutes, h.cfg().Agent.EpisodesPerRun, h.cfg().Agent.CooldownHours)
 
 	// Run immediately on startup, then on the ticker.
 	h.runAll(ctx)
 
-	interval := time.Duration(h.cfg().Stalk.IntervalMinutes) * time.Minute
+	interval := time.Duration(h.cfg().Agent.IntervalMinutes) * time.Minute
 	if interval == 0 {
 		interval = 60 * time.Minute
 	}
@@ -57,7 +57,7 @@ func (h *StalkerJob) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("[stalkarr] shutting down")
+			log.Println("[sleeparr] shutting down")
 			return
 		case <-ticker.C:
 			h.runAll(ctx)
@@ -67,19 +67,19 @@ func (h *StalkerJob) Start(ctx context.Context) {
 	}
 }
 
-func (h *StalkerJob) runAll(ctx context.Context) {
+func (h *AgentJob) runAll(ctx context.Context) {
 	for _, instance := range h.cfg().Sonarr {
 		if ctx.Err() != nil {
 			return
 		}
 		if err := h.runInstance(ctx, instance); err != nil {
-			log.Printf("[stalkarr] sonarr/%s error: %v", instance.ID, err)
+			log.Printf("[sleeparr] sonarr/%s error: %v", instance.ID, err)
 			h.status.SetError(instance.ID, err)
 		}
 	}
 }
 
-func (h *StalkerJob) runInstance(ctx context.Context, instance config.SonarrInstance) error {
+func (h *AgentJob) runInstance(ctx context.Context, instance config.SonarrInstance) error {
 	client := arr.NewSonarrClient(instance.URL, instance.APIKey)
 
 	result, err := client.GetMissingEpisodes(1, 500, "")
@@ -88,7 +88,7 @@ func (h *StalkerJob) runInstance(ctx context.Context, instance config.SonarrInst
 	}
 
 	if len(result.Episodes) == 0 {
-		log.Printf("[stalkarr] sonarr/%s — no missing episodes, nothing to do", instance.ID)
+		log.Printf("[sleeparr] sonarr/%s — no missing episodes, nothing to do", instance.ID)
 		h.status.SetIdle(instance.ID, 0)
 		return nil
 	}
@@ -101,13 +101,13 @@ func (h *StalkerJob) runInstance(ctx context.Context, instance config.SonarrInst
 	}
 
 	if len(eligible) == 0 {
-		log.Printf("[stalkarr] sonarr/%s — %d missing but all on cooldown", instance.ID, len(result.Episodes))
+		log.Printf("[sleeparr] sonarr/%s — %d missing but all on cooldown", instance.ID, len(result.Episodes))
 		h.status.SetIdle(instance.ID, 0)
 		return nil
 	}
 
 	rand.Shuffle(len(eligible), func(i, j int) { eligible[i], eligible[j] = eligible[j], eligible[i] })
-	count := h.cfg().Stalk.EpisodesPerRun
+	count := h.cfg().Agent.EpisodesPerRun
 	if count <= 0 {
 		count = 10
 	}
@@ -121,23 +121,23 @@ func (h *StalkerJob) runInstance(ctx context.Context, instance config.SonarrInst
 		ids[i] = ep.ID
 	}
 
-	log.Printf("[stalkarr] sonarr/%s — stalking %d episode(s) (%d eligible, %d total missing)",
+	log.Printf("[sleeparr] sonarr/%s — finding %d episode(s) (%d eligible, %d total missing)",
 		instance.ID, len(ids), len(eligible), len(result.Episodes))
 
-	stalkResult, err := client.TriggerEpisodeSearch(ids)
+	runResult, err := client.TriggerEpisodeSearch(ids)
 	if err != nil {
 		return fmt.Errorf("trigger search: %w", err)
 	}
 
 	for _, ep := range chosen {
-		h.cooldown.MarkStalked(instance.ID, ep.ID)
+		h.cooldown.MarkRun(instance.ID, ep.ID)
 	}
 
-	log.Printf("[stalkarr] sonarr/%s — %s (command ID: %d)", instance.ID, stalkResult.Message, stalkResult.CommandID)
+	log.Printf("[sleeparr] sonarr/%s — %s (command ID: %d)", instance.ID, runResult.Message, runResult.CommandID)
 	h.status.SetLastRun(instance.ID, len(ids), time.Now())
 	return nil
 }
 
-func (h *StalkerJob) RecordManualStalk(instanceID string, count int) {
-	h.status.RecordManualStalk(instanceID, count)
+func (h *AgentJob) RecordManualRun(instanceID string, count int) {
+	h.status.RecordManualRun(instanceID, count)
 }
