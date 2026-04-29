@@ -198,8 +198,8 @@ func (h *Handler) getDashboard(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"sonarr":     summaries,
-		"runssToday": runsToday,
+		"sonarr":    summaries,
+		"runsToday": runsToday,
 	})
 }
 
