@@ -1,0 +1,18 @@
+meta {
+  name: Get Settings
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/settings
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Returns current config. API keys are masked, only last 4 chars shown.
+}

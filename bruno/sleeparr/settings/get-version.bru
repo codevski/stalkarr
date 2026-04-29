@@ -1,0 +1,19 @@
+meta {
+  name: Get Version
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/version
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Returns current version and whether an update is available.
+  Update check is cached for 6 hours.
+}

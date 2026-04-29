@@ -1,0 +1,15 @@
+meta {
+  name: Test Sonarr Instance
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/settings/sonarr/sonarr-1/test
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

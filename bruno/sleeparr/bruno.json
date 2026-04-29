@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "name": "Sleeparr",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"],
+  "size": 0.0018472671508789062,
+  "filesCount": 7,
+  "presets": {
+    "requestType": "http",
+    "requestUrl": ""
+  }
+}
