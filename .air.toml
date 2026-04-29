@@ -1,9 +1,9 @@
 root = "."
 tmp_dir = "tmp"
 [build]
-  cmd = "go build -o ./tmp/stalkarr ./cmd/server"
-  bin = "./tmp/stalkarr"
-  full_bin = "DATA_DIR=./config ./tmp/stalkarr"
+  cmd = "go build -o ./tmp/sleeparr ./cmd/server"
+  bin = "./tmp/sleeparr"
+  full_bin = "DATA_DIR=./config ./tmp/sleeparr"
   delay = 1000
   exclude_dir = ["frontend", "tmp", "data", "internal/static/dist"]
   include_ext = ["go"]

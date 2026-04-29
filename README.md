@@ -1,4 +1,4 @@
-# STALKARR
+# SLEEPARR
 
 > **Personal project in BETA!** I built this for my own homelab using the tools I use daily: [Zed](https://zed.dev), [Claude](https://claude.ai), and [OpenCode](https://opencode.ai). AI is part of my regular workflow the same way Stack Overflow and docs always have been. If you spot any issues, chuck in a ticket and I'll get to it.
 
@@ -7,8 +7,8 @@ A self-hosted dashboard for searching missing media across your arr stack.
 > Currently supports **Sonarr**. Radarr support coming soon.
 
 <p align="center">
-  <img src="docs/desktop.png" alt="stalkarr desktop" width="600"/>
-  <img src="docs/mobile.png" alt="stalkarr mobile" width="200"/>
+  <img src="docs/desktop.png" alt="sleeparr desktop" width="600"/>
+  <img src="docs/mobile.png" alt="sleeparr mobile" width="200"/>
 </p>
 
 ## Quick start
@@ -27,9 +27,9 @@ docker compose up -d
 ## docker-compose.yml
 ```yaml
 services:
-  stalkarr:
-    image: ghcr.io/codevski/stalkarr:latest
-    container_name: stalkarr
+  sleeparr:
+    image: ghcr.io/codevski/sleeparr:latest
+    container_name: sleeparr
     restart: unless-stopped
     ports:
       - "${PORT:-8080}:8080"
@@ -82,7 +82,7 @@ air
 cd frontend && bun run dev
 ```
 
-See `bruno/stalkarr/` for the API collection.
+See `bruno/sleeparr/` for the API collection.
 
 ## License
 

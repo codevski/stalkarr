@@ -21,8 +21,8 @@ COPY --from=frontend-builder /app/frontend/dist ./internal/static/dist
 
 ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=linux go build \
-  -ldflags="-s -w -X stalkarr/internal/version.Version=${VERSION}" \
-  -o stalkarr ./cmd/server
+  -ldflags="-s -w -X sleeparr/internal/version.Version=${VERSION}" \
+  -o sleeparr ./cmd/server
 
 # ---- Stage 3: Final image ----
 FROM alpine:3.19
@@ -30,7 +30,7 @@ FROM alpine:3.19
 RUN apk add --no-cache su-exec tzdata
 
 WORKDIR /app
-COPY --from=go-builder /app/stalkarr .
+COPY --from=go-builder /app/sleeparr .
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

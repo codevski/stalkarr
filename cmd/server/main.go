@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"stalkarr/internal/api"
-	"stalkarr/internal/config"
-	"stalkarr/internal/jobs"
+	"sleeparr/internal/api"
+	"sleeparr/internal/config"
+	"sleeparr/internal/jobs"
 	"syscall"
 	"time"
 
@@ -29,12 +29,12 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	stalkerCtx, stalkerCancel := context.WithCancel(context.Background())
-	defer stalkerCancel()
-	stalker := jobs.NewStalkerJob(config.Get)
-	go stalker.Start(stalkerCtx)
+	agentCtx, agentCancel := context.WithCancel(context.Background())
+	defer agentCancel()
+	agent := jobs.NewAgentJob(config.Get)
+	go agent.Start(agentCtx)
 
-	r := api.NewRouter(stalker)
+	r := api.NewRouter(agent)
 	r.SetTrustedProxies(nil)
 
 	port := os.Getenv("PORT")
@@ -48,7 +48,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Stalkarr running on :%s (data: %s)", port, dataDir)
+		log.Printf("Sleeparr running on :%s (data: %s)", port, dataDir)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
@@ -62,9 +62,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	stalkerCancel()
+	agentCancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("forced shutdown: %v", err)
 	}
-	log.Println("Stalkarr stopped")
+	log.Println("Sleeparr stopped")
 }

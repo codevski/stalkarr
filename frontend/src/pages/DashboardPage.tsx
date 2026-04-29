@@ -10,17 +10,17 @@ import type { InstanceSummary } from "@/types";
 export default function DashboardPage() {
   const [sonarr, setSonarr] = useState<InstanceSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stalksToday, setStalksToday] = useState(0);
+  const [runsToday, setRunsToday] = useState(0);
 
   useEffect(() => {
     api
       .get("/api/dashboard")
       .then((res) => {
         setSonarr(res.data.sonarr);
-        setStalksToday(res.data.stalksToday);
+        setRunsToday(res.data.runsToday);
       })
       .finally(() => setLoading(false));
-  }, [setStalksToday]);
+  }, [setRunsToday]);
 
   const totalMissing = sonarr.reduce(
     (acc, s) => acc + (s.missingCount ?? 0),
@@ -44,8 +44,8 @@ export default function DashboardPage() {
           },
           { label: "Missing Movies", value: "—" },
           {
-            label: "Stalks Today",
-            value: loading ? "—" : stalksToday.toString(),
+            label: "Runs Today",
+            value: loading ? "—" : runsToday.toString(),
           },
           { label: "Found Today", value: "0" },
         ].map(({ label, value }) => (
@@ -117,11 +117,11 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center justify-between text-sm mt-2">
                         <span className="text-muted-foreground flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" /> Last stalk
+                          <Clock className="w-3 h-3" /> Last run
                         </span>
                         <span className="text-muted-foreground">
-                          {inst.lastStalk
-                            ? new Date(inst.lastStalk).toLocaleTimeString([], {
+                          {inst.lastRun
+                            ? new Date(inst.lastRun).toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })

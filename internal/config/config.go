@@ -23,10 +23,10 @@ type AuthConfig struct {
 type Config struct {
 	Auth   AuthConfig       `json:"auth"`
 	Sonarr []SonarrInstance `json:"sonarr"`
-	Stalk  StalkConfig      `json:"stalk"`
+	Agent  AgentConfig      `json:"agent"`
 }
 
-type StalkConfig struct {
+type AgentConfig struct {
 	Enabled         bool `json:"enabled"`
 	IntervalMinutes int  `json:"intervalMinutes"`
 	EpisodesPerRun  int  `json:"episodesPerRun"`
@@ -60,7 +60,7 @@ func load() error {
 	defer f.Close()
 
 	current = Config{
-		Stalk: StalkConfig{
+		Agent: AgentConfig{
 			Enabled:         false,
 			IntervalMinutes: 60,
 			EpisodesPerRun:  10,

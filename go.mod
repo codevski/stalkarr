@@ -1,4 +1,4 @@
-module stalkarr
+module sleeparr
 
 go 1.26.1
 

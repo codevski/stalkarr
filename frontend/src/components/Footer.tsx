@@ -3,7 +3,7 @@ import { ExternalLink } from "lucide-react";
 import api from "@/lib/api";
 import type { VersionInfo } from "@/types";
 
-const RELEASES_URL = "https://github.com/codevski/stalkarr/releases/latest";
+const RELEASES_URL = "https://github.com/codevski/sleeparr/releases/latest";
 
 export default function Footer() {
   const [version, setVersion] = useState<VersionInfo | null>(null);
@@ -18,7 +18,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-border/50 py-3 mt-auto">
       <div className="max-w-6xl mx-auto px-4 flex items-center justify-between text-xs text-muted-foreground">
-        <span>stalkarr</span>
+        <span>sleeparr</span>
         <div className="flex items-center gap-3">
           {version && <span className="font-mono">{version.current}</span>}
           {version?.hasUpdate && (

@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"stalkarr/internal/config"
+	"sleeparr/internal/config"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -30,7 +30,7 @@ func mustGetJWTSecret() string {
 const (
 	accessTokenDuration  = 15 * time.Minute
 	refreshTokenDuration = 7 * 24 * time.Hour
-	refreshCookieName    = "stalkarr_refresh"
+	refreshCookieName    = "sleeparr_refresh"
 )
 
 func generateAccessToken(username string) (string, error) {

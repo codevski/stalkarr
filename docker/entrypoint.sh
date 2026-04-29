@@ -6,23 +6,23 @@ PGID=${PGID:-1000}
 
 echo "
 ─────────────────────────────────────
-        stalkarr
+sleeparr
 ─────────────────────────────────────
 User UID: ${PUID}
 User GID: ${PGID}
 ─────────────────────────────────────
 "
 
-if ! getent group stalkarr > /dev/null 2>&1; then
-    addgroup -g "$PGID" stalkarr
+if ! getent group sleeparr > /dev/null 2>&1; then
+    addgroup -g "$PGID" sleeparr
 fi
 
-if ! getent passwd stalkarr > /dev/null 2>&1; then
-    adduser -D -u "$PUID" -G stalkarr stalkarr
+if ! getent passwd sleeparr > /dev/null 2>&1; then
+    adduser -D -u "$PUID" -G sleeparr sleeparr
 fi
 
 mkdir -p /config
-chown -R stalkarr:stalkarr /config
-chown -R stalkarr:stalkarr /app
+chown -R sleeparr:sleeparr /config
+chown -R sleeparr:sleeparr /app
 
-exec su-exec stalkarr:stalkarr /app/stalkarr
+exec su-exec sleeparr:sleeparr /app/sleeparr

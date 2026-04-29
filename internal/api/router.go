@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"stalkarr/internal/arr"
-	"stalkarr/internal/config"
-	"stalkarr/internal/jobs"
-	"stalkarr/internal/static"
-	"stalkarr/internal/version"
+	"sleeparr/internal/arr"
+	"sleeparr/internal/config"
+	"sleeparr/internal/jobs"
+	"sleeparr/internal/static"
+	"sleeparr/internal/version"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -16,11 +16,11 @@ import (
 )
 
 type Handler struct {
-	stalker *jobs.StalkerJob
+	agent *jobs.AgentJob
 }
 
-func NewRouter(stalker *jobs.StalkerJob) *gin.Engine {
-	h := &Handler{stalker: stalker}
+func NewRouter(agent *jobs.AgentJob) *gin.Engine {
+	h := &Handler{agent: agent}
 
 	r := gin.Default()
 	r.RedirectTrailingSlash = false
@@ -50,8 +50,8 @@ func NewRouter(stalker *jobs.StalkerJob) *gin.Engine {
 		protected.PUT("/settings/sonarr/:id", updateSonarrInstance)
 		protected.DELETE("/settings/sonarr/:id", deleteSonarrInstance)
 		protected.POST("/settings/sonarr/:id/test", testSonarrInstance)
-		protected.GET("/settings/stalk", getStalkSettings)
-		protected.POST("/settings/stalk", saveStalkSettings)
+		protected.GET("/settings/agent", getAgentSettings)
+		protected.POST("/settings/agent", saveAgentSettings)
 		protected.GET("/dashboard", h.getDashboard)
 		protected.GET("/version", getVersion)
 		protected.POST("/auth/logout", handleLogout)
@@ -61,8 +61,8 @@ func NewRouter(stalker *jobs.StalkerJob) *gin.Engine {
 		sonarr := protected.Group("/sonarr/:id")
 		{
 			sonarr.GET("/missing", getMissing)
-			sonarr.POST("/stalk", h.stalkEpisodes)
-			sonarr.POST("/stalk/all", h.stalkAll)
+			sonarr.POST("/run", h.runEpisodes)
+			sonarr.POST("/run/all", h.runAll)
 		}
 	}
 
@@ -125,7 +125,7 @@ func getMissing(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *Handler) stalkEpisodes(c *gin.Context) {
+func (h *Handler) runEpisodes(c *gin.Context) {
 	client, ok := getSonarrClient(c)
 	if !ok {
 		return
@@ -145,7 +145,7 @@ func (h *Handler) stalkEpisodes(c *gin.Context) {
 		return
 	}
 
-	h.stalker.RecordManualStalk(c.Param("id"), len(req.EpisodeIDs))
+	h.agent.RecordManualRun(c.Param("id"), len(req.EpisodeIDs))
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":   result.Message,
@@ -155,31 +155,31 @@ func (h *Handler) stalkEpisodes(c *gin.Context) {
 }
 
 func (h *Handler) getJobStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, h.stalker.Status())
+	c.JSON(http.StatusOK, h.agent.Status())
 }
 
 func (h *Handler) getDashboard(c *gin.Context) {
 	cfg := config.Get()
-	jobStatus := h.stalker.Status()
+	jobStatus := h.agent.Status()
 
 	type instanceSummary struct {
 		ID           string     `json:"id"`
 		Name         string     `json:"name"`
 		MissingCount int        `json:"missingCount"`
-		LastStalk    *time.Time `json:"lastStalk"`
-		LastCount    int        `json:"lastStalkCount"`
+		LastRun      *time.Time `json:"lastRun"`
+		LastCount    int        `json:"lastRunCount"`
 		State        string     `json:"state"`
 		Error        string     `json:"error,omitempty"`
 	}
 
-	stalksToday := 0
+	runsToday := 0
 	summaries := make([]instanceSummary, 0, len(cfg.Sonarr))
 	for _, inst := range cfg.Sonarr {
 		client := arr.NewSonarrClient(inst.URL, inst.APIKey)
 		result, err := client.GetMissingEpisodes(1, 1, "")
 
 		status := jobStatus.Instances[inst.ID]
-		stalksToday += status.LastCount
+		runsToday += status.LastCount
 
 		if err != nil {
 			summaries = append(summaries, instanceSummary{
@@ -191,15 +191,15 @@ func (h *Handler) getDashboard(c *gin.Context) {
 			ID:           inst.ID,
 			Name:         inst.Name,
 			MissingCount: result.TotalCount,
-			LastStalk:    status.LastRun,
+			LastRun:      status.LastRun,
 			LastCount:    status.LastCount,
 			State:        status.State,
 		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"sonarr":      summaries,
-		"stalksToday": stalksToday,
+		"sonarr":     summaries,
+		"runssToday": runsToday,
 	})
 }
 
@@ -212,7 +212,7 @@ func getVersion(c *gin.Context) {
 	})
 }
 
-func (h *Handler) stalkAll(c *gin.Context) {
+func (h *Handler) runAll(c *gin.Context) {
 	client, ok := getSonarrClient(c)
 	if !ok {
 		return
@@ -225,7 +225,7 @@ func (h *Handler) stalkAll(c *gin.Context) {
 	}
 
 	if len(result.Episodes) == 0 {
-		c.JSON(http.StatusOK, gin.H{"message": "No missing episodes to stalk", "count": 0})
+		c.JSON(http.StatusOK, gin.H{"message": "No missing episodes to find", "count": 0})
 		return
 	}
 
@@ -234,15 +234,15 @@ func (h *Handler) stalkAll(c *gin.Context) {
 		ids[i] = ep.ID
 	}
 
-	stalkResult, err := client.TriggerEpisodeSearch(ids)
+	runResult, err := client.TriggerEpisodeSearch(ids)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":   stalkResult.Message,
-		"commandId": stalkResult.CommandID,
+		"message":   runResult.Message,
+		"commandId": runResult.CommandID,
 		"count":     len(ids),
 	})
 }
