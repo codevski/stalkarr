@@ -204,7 +204,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [run, setRun] = useState({
+  const [agent, setAgent] = useState({
     enabled: false,
     intervalMinutes: 60,
     episodesPerRun: 10,
@@ -248,7 +248,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     api.get("/api/settings").then((res) => setInstances(res.data.sonarr));
-    api.get("/api/settings/run").then((res) => setRun(res.data));
+    api.get("/api/settings/agent").then((res) => setAgent(res.data));
   }, []);
 
   async function addInstance(data: {
@@ -279,8 +279,8 @@ export default function SettingsPage() {
     setRunSaving(true);
     setRunSaved(false);
     try {
-      const res = await api.post("/api/settings/stalk", stalk);
-      setRun(res.data);
+      const res = await api.post("/api/settings/agent", agent);
+      setAgent(res.data);
       setRunSaved(true);
       setTimeout(() => setRunSaved(false), 3000);
     } finally {
@@ -365,12 +365,12 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Timer className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base">Auto Stalker</CardTitle>
+              <CardTitle className="text-base">Auto Agent</CardTitle>
             </div>
             <Switch
-              checked={run.enabled}
+              checked={agent.enabled}
               onCheckedChange={(checked) =>
-                setRun((prev) => ({ ...prev, enabled: checked }))
+                setAgent((prev) => ({ ...prev, enabled: checked }))
               }
             />
           </div>
@@ -385,14 +385,14 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={run.intervalMinutes}
+                value={agent.intervalMinutes}
                 onChange={(e) =>
-                  setRun((prev) => ({
+                  setAgent((prev) => ({
                     ...prev,
                     intervalMinutes: Number(e.target.value),
                   }))
                 }
-                disabled={!run.enabled}
+                disabled={!agent.enabled}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -400,14 +400,14 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={run.episodesPerRun}
+                value={agent.episodesPerRun}
                 onChange={(e) =>
-                  setRun((prev) => ({
+                  setAgent((prev) => ({
                     ...prev,
                     episodesPerRun: Number(e.target.value),
                   }))
                 }
-                disabled={!run.enabled}
+                disabled={!agent.enabled}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -415,14 +415,14 @@ export default function SettingsPage() {
               <Input
                 type="number"
                 min={1}
-                value={run.cooldownHours}
+                value={agent.cooldownHours}
                 onChange={(e) =>
-                  setRun((prev) => ({
+                  setAgent((prev) => ({
                     ...prev,
                     cooldownHours: Number(e.target.value),
                   }))
                 }
-                disabled={!run.enabled}
+                disabled={!agent.enabled}
               />
             </div>
           </div>
