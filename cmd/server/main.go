@@ -32,9 +32,9 @@ func main() {
 	agentCtx, agentCancel := context.WithCancel(context.Background())
 	defer agentCancel()
 	agent := jobs.NewAgentJob(config.Get)
-	go agent.Start(agentCtx)
+	agent.Start(agentCtx)
 
-	r := api.NewRouter(agent)
+	r := api.NewRouter(agent, agentCtx)
 	r.SetTrustedProxies(nil)
 
 	port := os.Getenv("PORT")
@@ -62,9 +62,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	agentCancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("forced shutdown: %v", err)
 	}
+	agentCancel()
+
 	log.Println("Sleeparr stopped")
 }

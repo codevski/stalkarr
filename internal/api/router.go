@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -16,11 +17,12 @@ import (
 )
 
 type Handler struct {
-	agent *jobs.AgentJob
+	agent  *jobs.AgentJob
+	appCtx context.Context
 }
 
-func NewRouter(agent *jobs.AgentJob) *gin.Engine {
-	h := &Handler{agent: agent}
+func NewRouter(agent *jobs.AgentJob, appCtx context.Context) *gin.Engine {
+	h := &Handler{agent: agent, appCtx: appCtx}
 
 	r := gin.Default()
 	r.RedirectTrailingSlash = false
@@ -51,7 +53,7 @@ func NewRouter(agent *jobs.AgentJob) *gin.Engine {
 		protected.DELETE("/settings/sonarr/:id", deleteSonarrInstance)
 		protected.POST("/settings/sonarr/:id/test", testSonarrInstance)
 		protected.GET("/settings/agent", getAgentSettings)
-		protected.POST("/settings/agent", saveAgentSettings)
+		protected.POST("/settings/agent", h.saveAgentSettings)
 		protected.GET("/dashboard", h.getDashboard)
 		protected.GET("/version", getVersion)
 		protected.POST("/auth/logout", handleLogout)

@@ -47,3 +47,9 @@ func (c *CooldownTracker) Prune() {
 		}
 	}
 }
+
+func (t *CooldownTracker) SetDuration(d time.Duration) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.duration = d
+}

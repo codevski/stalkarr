@@ -212,7 +212,7 @@ func getAgentSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, cfg.Agent)
 }
 
-func saveAgentSettings(c *gin.Context) {
+func (h *Handler) saveAgentSettings(c *gin.Context) {
 	var req config.AgentConfig
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -233,5 +233,8 @@ func saveAgentSettings(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not save"})
 		return
 	}
+
+	h.agent.Reload(h.appCtx)
+
 	c.JSON(http.StatusOK, cfg.Agent)
 }

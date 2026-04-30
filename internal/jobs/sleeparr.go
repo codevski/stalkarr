@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sync"
 	"time"
 
 	"sleeparr/internal/arr"
@@ -15,6 +16,10 @@ type AgentJob struct {
 	cfg      func() config.Config
 	cooldown *CooldownTracker
 	status   *StatusTracker
+
+	mu      sync.Mutex
+	cancel  context.CancelFunc
+	running bool
 }
 
 func NewAgentJob(cfg func() config.Config) *AgentJob {
@@ -34,52 +39,104 @@ func (h *AgentJob) Status() JobStatus {
 }
 
 func (h *AgentJob) Start(ctx context.Context) {
-	cfg := h.cfg()
-	if !cfg.Agent.Enabled {
-		log.Println("[sleeparr] disabled — set agent.enabled=true in config to activate")
+	h.spawn(ctx, true)
+}
+
+func (h *AgentJob) Stop() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if !h.running {
 		return
 	}
+	h.cancel()
+	h.running = false
+	log.Println("[sleeparr] workers stopped")
+}
+
+func (h *AgentJob) Reload(ctx context.Context) {
+	h.Stop()
+	h.spawn(ctx, false)
+}
+
+func (h *AgentJob) spawn(ctx context.Context, runImmediately bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.running {
+		return
+	}
+
+	cfg := h.cfg()
+	if !cfg.Agent.Enabled {
+		log.Println("[sleeparr] disabled — set agent.enabled=true to activate")
+		return
+	}
+
+	cooldownDur := time.Duration(cfg.Agent.CooldownHours) * time.Hour
+	if cooldownDur == 0 {
+		cooldownDur = 24 * time.Hour
+	}
+	h.cooldown.SetDuration(cooldownDur)
+
+	runCtx, cancel := context.WithCancel(ctx)
+	h.cancel = cancel
+	h.running = true
+
 	log.Printf("[sleeparr] starting — interval=%dm, count=%d, cooldown=%dh",
-		h.cfg().Agent.IntervalMinutes, h.cfg().Agent.EpisodesPerRun, h.cfg().Agent.CooldownHours)
+		cfg.Agent.IntervalMinutes, cfg.Agent.EpisodesPerRun, cfg.Agent.CooldownHours)
 
-	// Run immediately on startup, then on the ticker.
-	h.runAll(ctx)
+	go h.sonarrWorker(runCtx, runImmediately)
+	go h.maintenanceWorker(runCtx)
+}
 
+func (h *AgentJob) sonarrWorker(ctx context.Context, runImmediately bool) {
 	interval := time.Duration(h.cfg().Agent.IntervalMinutes) * time.Minute
 	if interval == 0 {
 		interval = 60 * time.Minute
 	}
+
+	if runImmediately {
+		h.runSonarrFanOut(ctx)
+	}
+
 	ticker := time.NewTicker(interval)
-	pruneTicker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
-	defer pruneTicker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("[sleeparr] shutting down")
 			return
 		case <-ticker.C:
-			h.runAll(ctx)
-		case <-pruneTicker.C:
-			h.cooldown.Prune()
+			h.runSonarrFanOut(ctx)
 		}
 	}
 }
 
-func (h *AgentJob) runAll(ctx context.Context) {
-	for _, instance := range h.cfg().Sonarr {
+func (h *AgentJob) runSonarrFanOut(ctx context.Context) {
+	instances := h.cfg().Sonarr
+	if len(instances) == 0 {
+		return
+	}
+
+	var wg sync.WaitGroup
+	for _, instance := range instances {
 		if ctx.Err() != nil {
 			return
 		}
-		if err := h.runInstance(ctx, instance); err != nil {
-			log.Printf("[sleeparr] sonarr/%s error: %v", instance.ID, err)
-			h.status.SetError(instance.ID, err)
-		}
+		wg.Add(1)
+		go func(inst config.SonarrInstance) {
+			defer wg.Done()
+			if err := h.runSonarrInstance(ctx, inst); err != nil {
+				log.Printf("[sleeparr] sonarr/%s error: %v", inst.ID, err)
+				h.status.SetError(inst.ID, err)
+			}
+		}(instance)
 	}
+	wg.Wait()
 }
 
-func (h *AgentJob) runInstance(ctx context.Context, instance config.SonarrInstance) error {
+func (h *AgentJob) runSonarrInstance(ctx context.Context, instance config.SonarrInstance) error {
 	client := arr.NewSonarrClient(instance.URL, instance.APIKey)
 
 	result, err := client.GetMissingEpisodes(1, 500, "")
@@ -107,6 +164,7 @@ func (h *AgentJob) runInstance(ctx context.Context, instance config.SonarrInstan
 	}
 
 	rand.Shuffle(len(eligible), func(i, j int) { eligible[i], eligible[j] = eligible[j], eligible[i] })
+
 	count := h.cfg().Agent.EpisodesPerRun
 	if count <= 0 {
 		count = 10
@@ -114,8 +172,8 @@ func (h *AgentJob) runInstance(ctx context.Context, instance config.SonarrInstan
 	if count > len(eligible) {
 		count = len(eligible)
 	}
-	chosen := eligible[:count]
 
+	chosen := eligible[:count]
 	ids := make([]int, len(chosen))
 	for i, ep := range chosen {
 		ids[i] = ep.ID
@@ -136,6 +194,20 @@ func (h *AgentJob) runInstance(ctx context.Context, instance config.SonarrInstan
 	log.Printf("[sleeparr] sonarr/%s — %s (command ID: %d)", instance.ID, runResult.Message, runResult.CommandID)
 	h.status.SetLastRun(instance.ID, len(ids), time.Now())
 	return nil
+}
+
+func (h *AgentJob) maintenanceWorker(ctx context.Context) {
+	ticker := time.NewTicker(6 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			h.cooldown.Prune()
+		}
+	}
 }
 
 func (h *AgentJob) RecordManualRun(instanceID string, count int) {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +23,7 @@ func setupTestRouter(t *testing.T) {
 }
 
 func newTestRouter() *gin.Engine {
-	return NewRouter(nil)
+	return NewRouter(nil, context.Background())
 }
 
 func postJSON(router http.Handler, path string, body any) *httptest.ResponseRecorder {
